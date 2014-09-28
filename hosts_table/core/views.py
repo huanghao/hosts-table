@@ -52,49 +52,50 @@ def upload(request):
     return HttpResponse('Done', content_type='text/plain')
 
 
+def _trans(host):
+    data = host.data = json.loads(host.data)
+    info = {
+        'ip': host.ip,
+        'hostname': data['hostname'],
+        'updated': host.updated,
+        }
+
+    cnt, total, unit = 0, 0, None
+    for typ, val in data['dmidecode']:
+        if typ == 'system':
+            info['system'] = '%s %s '% (
+                val['Manufacturer'],
+                val['Product_Name'],
+                )
+        elif typ == 'memory_device':
+            if val['Size'] == 'No Module Installed':
+                continue
+            i, unit = val['Size'].split()
+            cnt += 1
+            total += int(i)
+        elif typ == 'processor':
+            info['cpu'] = '%s %s %s' % (
+                val['Manufacturer'],
+                val['Family'],
+                val['Max_Speed'],
+                )
+            if 'Core_Count' in val:
+                info['cpu'] += ' (Core: %s, Thead: %s)' % (
+                    val['Core_Count'],
+                    val['Thread_Count'],
+                    )
+
+    info['memory'] = '%d memory stick(s), %d %s' % (
+        cnt,
+        total,
+        unit,
+        )
+
+    return info
+
+
 def index(request):
-    def _trans(host):
-        data = host.data = json.loads(host.data)
-        info = {
-            'ip': host.ip,
-            'hostname': data['hostname'],
-            'updated': host.updated,
-            }
-
-        cnt, total, unit = 0, 0, None
-        for typ, val in data['dmidecode']:
-            if typ == 'system':
-                info['system'] = '%s %s '% (
-                    val['Manufacturer'],
-                    val['Product_Name'],
-                    )
-            elif typ == 'memory_device':
-                if val['Size'] == 'No Module Installed':
-                    continue
-                i, unit = val['Size'].split()
-                cnt += 1
-                total += int(i)
-            elif typ == 'processor':
-                info['cpu'] = '%s %s %s' % (
-                    val['Manufacturer'],
-                    val['Family'],
-                    val['Max_Speed'],
-                    )
-                if 'Core_Count' in val:
-                    info['cpu'] += ' (Core: %s, Thead: %s)' % (
-                        val['Core_Count'],
-                        val['Thread_Count'],
-                        )
-
-        info['memory'] = '%d memory stick(s), %d %s' % (
-            cnt,
-            total,
-            unit,
-            )
-
-        return info
-
-    hosts = [_trans(i) for i in HostInfo.objects.all()]
+    hosts = [_trans(i) for i in HostInfo.objects.all().order_by('-updated')]
     return render(request, 'core/index.html', {
             'hosts': hosts,
             })
