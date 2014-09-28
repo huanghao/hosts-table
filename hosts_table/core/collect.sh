@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 my_version="%(version)s"
 delimiter="%(delimiter)s"
@@ -19,6 +19,10 @@ upload() {
     (
         echo "hostname"
         hostname
+        echo "$delimiter"
+
+        echo "df"
+        df -lT -x tmpfs -x devtmpfs -B G
         echo "$delimiter"
 
         echo "dmidecode"

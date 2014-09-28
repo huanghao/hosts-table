@@ -9,12 +9,12 @@ from django.views.decorators.csrf import csrf_exempt
 
 import dmidecode
 
-from core.models import HostInfo
+from core.models import Raw, Host
 
 
 SERVER = 'http://huanghao-pc.bj.intel.com:8000'
 DELIMITER = 'a_123454321_a'
-CODE_VERSION = '0.1'
+CODE_VERSION = '0.2'
 CODE = open(os.path.join(os.path.dirname(__file__), 'collect.sh')).read()
 
 
@@ -36,74 +36,68 @@ def collect(request):
 @require_POST
 @csrf_exempt
 def upload(request):
-    client_ip = request.META['REMOTE_ADDR']
-    info = {}
-    for sec in request.body.strip().split(DELIMITER):
-        typ, content = sec.strip().split('\n', 1)
-        if typ == 'hostname':
-            info[typ] = content.strip()
-        elif typ == 'dmidecode':
-            info[typ] = dmidecode.parse_dmi(content.strip())
+    try:
+        ip = request.META['REMOTE_ADDR']
 
-    host, _ = HostInfo.objects.get_or_create(ip=client_ip)
-    host.data = json.dumps(info)
-    host.save()
+        data = {}
+        for sec in request.body.strip().split(DELIMITER):
+            typ, content = sec.strip().split('\n', 1)
+            data[typ] = content.strip()
 
+        raw, _ = Raw.objects.get_or_create(ip=ip)
+        raw.data = json.dumps(data)
+        raw.save()
+
+        # TODO: async
+        update_host(ip, data)
+    except Exception as err:
+        import traceback
+        traceback.print_exc()
     return HttpResponse('Done', content_type='text/plain')
 
 
-def _trans(host):
-    data = host.data = json.loads(host.data)
-    info = {
-        'ip': host.ip,
-        'hostname': data['hostname'],
-        'updated': host.updated,
-        }
 
-    cnt, total, unit = 0, 0, None
-    for typ, val in data['dmidecode']:
-        if typ == 'system':
-            info['system'] = '%s %s '% (
-                val['Manufacturer'],
-                val['Product_Name'],
-                )
-        elif typ == 'memory_device':
-            if val['Size'] == 'No Module Installed':
-                continue
-            i, unit = val['Size'].split()
-            cnt += 1
-            total += int(i)
-        elif typ == 'processor':
-            info['cpu'] = '%s %s %s' % (
-                val['Manufacturer'],
-                val['Family'],
-                val['Max_Speed'],
-                )
-            if 'Core_Count' in val:
-                info['cpu'] += ' (Core: %s, Thead: %s)' % (
-                    val['Core_Count'],
-                    val['Thread_Count'],
-                    )
+def parse_df(content):
+    '''
+Filesystem     Type 1G-blocks  Used Available Use% Mounted on
+/dev/sda1      ext4      910G  230G      634G  27% /
+    '''
+    lines = content.strip().splitlines()
+    total = 0
+    for line in lines[1:]:
+        size = line.split()[2]
+        total += int(size.rstrip('G'))
+    return '%dG' % total 
 
-    info['memory'] = '%d memory stick(s), %d %s' % (
-        cnt,
-        total,
-        unit,
-        )
 
-    return info
+def update_host(ip, data):
+    hostname = data['hostname']
+    disk_size = parse_df(data['df'])
+    dmi = dmidecode.humanize(dmidecode.parse_dmi(data['dmidecode']))
+    host, _ = Host.objects.get_or_create(uuid=dmi['uuid'])
+    host.sn = dmi['sn']
+    host.hostname = hostname
+    host.ip = ip
+    host.model = dmi['model']
+    host.cpus = dmi['cpus']
+    host.memory = dmi['memory']
+    host.disk = disk_size
+    host.slots = dmi['slots']
+    host.save()
 
 
 def index(request):
-    hosts = [_trans(i) for i in HostInfo.objects.all().order_by('-updated')]
+    hosts = Host.objects.all()
     return render(request, 'core/index.html', {
             'hosts': hosts,
             })
 
 
-def host(reuqest, ip):
+def raw(request, ip):
     try:
-        host = HostInfo.objects.get(ip=ip)
-    except HostInfo.DoesNotExist:
+        raw = Raw.objects.get(ip=ip)
+    except Raw.DoesNotExist:
         return "Not found"
-    return HttpResponse(host.data, content_type='application/json')
+    return render(request, 'core/raw.html', {
+            'data': json.loads(raw.data),
+            })

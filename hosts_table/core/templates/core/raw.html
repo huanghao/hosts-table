@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+
+{% block title %}Raw debug{% endblock %}
+
+{% block body %}
+<div class="container">
+  {% for typ, val in data.items %}
+  <h3>{{ typ }}</h3>
+  <div>
+    <pre>{{ val }}</pre>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,35 +1,40 @@
+{% extends "core/base.html" %}
+
 {% load humanize %}
-<html>
-<head>
-<!--
-bootstrap.min.css  bootstrap.min.js  bootstrap-theme.min.css
--->
-<link rel="stylesheet" href="{{ STATIC_URL }}bootstrap.min.css">
-</head>
-<body>
+
+{% block title %}Hosts list{% endblock %}
+
+{% block body %}
 <h1>Hosts</h1>
+
 <div class="container">
 <table class="table">
   <tr>
     <th>Host</th>
-    <th>System</th>
+    <th>Model</th>
     <th>Memory</th>
+    <th>Disk</th>
     <th>CPU</th>
+    <th>UUID / SN</th>
+    <th>Mem slots</th>
     <th>Updated</th>
   </tr>
   {% for h in hosts %}
   <tr>
-    <td><a href="{% url 'host' h.ip %}">
-        {{ h.hostname }}
-        ({{ h.ip }})</a>
+    <td><span>
+        <a href="{% url 'raw' h.ip %}">
+          {{ h.hostname }}
+          ({{ h.ip }})</a></span>
     </td>
-    <td>{{ h.system }}</td>
+    <td>{{ h.model }}</td>
     <td>{{ h.memory }}</td>
-    <td>{{ h.cpu }}</td>
+    <td>{{ h.disk }}</td>
+    <td>{{ h.cpus }}</td>
+    <td>{{ h.uuid }} / {{ h.sn }}</td>
+    <td>{{ h.slots }}</td>
     <td>{{ h.updated|naturaltime }}</td>
   </tr>
   {% endfor %}
 </table>
 </div>
-</body>
-</html>
+{% endblock %}
