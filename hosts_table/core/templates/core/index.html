@@ -1,0 +1,35 @@
+{% load humanize %}
+<html>
+<head>
+<!--
+bootstrap.min.css  bootstrap.min.js  bootstrap-theme.min.css
+-->
+<link rel="stylesheet" href="{{ STATIC_URL }}bootstrap.min.css">
+</head>
+<body>
+<h1>Hosts</h1>
+<div class="container">
+<table class="table">
+  <tr>
+    <th>Host</th>
+    <th>System</th>
+    <th>Memory</th>
+    <th>CPU</th>
+    <th>Updated</th>
+  </tr>
+  {% for h in hosts %}
+  <tr>
+    <td>
+      {{ h.hostname }}
+      ({{ h.ip }})
+    </td>
+    <td>{{ h.system }}</td>
+    <td>{{ h.memory }}</td>
+    <td>{{ h.cpu }}</td>
+    <td>{{ h.updated|naturaltime }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+</body>
+</html>
