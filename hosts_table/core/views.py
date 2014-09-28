@@ -75,14 +75,16 @@ def index(request):
                 cnt += 1
                 total += int(i)
             elif typ == 'processor':
-                print val
-                info['cpu'] = '%s %s %s (Core: %s, Thead: %s)' % (
+                info['cpu'] = '%s %s %s' % (
                     val['Manufacturer'],
                     val['Family'],
                     val['Max_Speed'],
-                    val['Core_Count'],
-                    val['Thread_Count'],
                     )
+                if 'Core_Count' in val:
+                    info['cpu'] += ' (Core: %s, Thead: %s)' % (
+                        val['Core_Count'],
+                        val['Thread_Count'],
+                        )
 
         info['memory'] = '%d memory stick(s), %d %s' % (
             cnt,
@@ -96,3 +98,11 @@ def index(request):
     return render(request, 'core/index.html', {
             'hosts': hosts,
             })
+
+
+def host(reuqest, ip):
+    try:
+        host = HostInfo.objects.get(ip=ip)
+    except HostInfo.DoesNotExist:
+        return "Not found"
+    return HttpResponse(host.data, content_type='application/json')

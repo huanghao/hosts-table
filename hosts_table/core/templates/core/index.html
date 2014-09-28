@@ -19,9 +19,9 @@ bootstrap.min.css  bootstrap.min.js  bootstrap-theme.min.css
   </tr>
   {% for h in hosts %}
   <tr>
-    <td>
-      {{ h.hostname }}
-      ({{ h.ip }})
+    <td><a href="{% url 'host' h.ip %}">
+        {{ h.hostname }}
+        ({{ h.ip }})</a>
     </td>
     <td>{{ h.system }}</td>
     <td>{{ h.memory }}</td>

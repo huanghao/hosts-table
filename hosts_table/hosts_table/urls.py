@@ -14,4 +14,5 @@ urlpatterns = patterns('',
     url(r'^version/$', 'core.views.version', name='version'),
     url(r'^collect/$', 'core.views.collect', name='collect'),
     url(r'^upload/$', 'core.views.upload', name='upload'),
+    url(r'^host/(.*?)/$', 'core.views.host', name='host'),
 )
